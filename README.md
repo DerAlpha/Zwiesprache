@@ -154,7 +154,8 @@ Für Playwright ggf. einmalig `npx playwright install chromium`. Chromium wird m
   identischer Sicherheitscode, Nachrichten und Dateien in beide Richtungen (inkl. Bildvorschau und
   Integrität), XSS-/Link-Prüfung, Tipp-Anzeige, Chat beenden, keine Requests an fremde Origins, keine
   CSP-Verstöße; Fehlerfälle (andere Einladung, neu geladen, bereits verwendet), BroadcastChannel-Übergabe,
-  `bye` bei `pagehide`, Reconnect mit erhaltenem Verlauf, ICE-Fehlermeldung, Einzeldatei über `file://`.
+  `bye` bei `pagehide`, Reconnect mit erhaltenem Verlauf, ICE-Fehlermeldung, Einzeldatei über `file://`,
+  QR-Scan über Chromiums Fake-Kamera (jsQR-Fallback unter CSP), Datei-Limit 200 MB und Abbrechen.
 
 ### Manuelle Testmatrix
 

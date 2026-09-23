@@ -320,6 +320,7 @@ export function Chat() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const listRef = useRef<HTMLOListElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const itemCount = chat?.items.length ?? 0;
 
@@ -330,9 +331,16 @@ export function Chat() {
 
   useEffect(() => {
     if (!menuOpen) return;
-    const close = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
-    document.addEventListener('keydown', close);
-    return () => document.removeEventListener('keydown', close);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    const onPointer = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
   }, [menuOpen]);
 
   if (!chat) return null;
@@ -349,7 +357,7 @@ export function Chat() {
             {statusText(chat)}
             {typeText && (
               <span class="conn-type" data-testid="connection-type">
-                {' · '}
+                <span class="visually-hidden">, </span>
                 {typeText}
               </span>
             )}
@@ -365,7 +373,7 @@ export function Chat() {
           <span aria-hidden="true">{chat.verified ? '🛡️' : '⚠︎'}</span>{' '}
           {chat.verified ? t.safety.badgeVerified : t.safety.badgeUnverified}
         </button>
-        <div class="menu-wrap">
+        <div class="menu-wrap" ref={menuRef}>
           <button
             type="button"
             class="btn ghost icon"
