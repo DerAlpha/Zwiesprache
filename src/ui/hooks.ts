@@ -14,7 +14,14 @@ export function useController(): Controller {
 export function useAppState(): AppState {
   const c = useController();
   const [, force] = useReducer((n: number, _: void) => n + 1, 0);
-  useEffect(() => c.subscribe(() => force()), [c]);
+  const rendered = useRef(c.state);
+  rendered.current = c.state;
+  useEffect(() => {
+    const unsubscribe = c.subscribe(() => force());
+    // Änderungen zwischen Rendern und Abonnieren nicht verpassen
+    if (c.state !== rendered.current) force();
+    return unsubscribe;
+  }, [c]);
   return c.state;
 }
 

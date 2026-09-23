@@ -24,6 +24,9 @@ import { Session, type EndReason } from './session';
 
 export const DISCONNECT_GRACE_MS = 15_000;
 export const HOST_WAIT_HINT_MS = 10 * 60 * 1000;
+/** Browser melden ICE-"failed" teils erst nach Minuten – danach zeigen wir die Hilfe trotzdem. */
+export const CONNECT_TIMEOUT_MS = 30_000;
+export const GUEST_SLOW_MS = 90_000;
 const TYPING_SEND_INTERVAL_MS = 3000;
 const TYPING_IDLE_MS = 5000;
 const PEER_TYPING_TIMEOUT_MS = 6000;
@@ -146,6 +149,7 @@ export class Controller {
   private certificate: Promise<RTCCertificate> | null = null;
   private stopHandover: (() => void) | null = null;
   private disconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  private connectTimer: ReturnType<typeof setTimeout> | undefined;
   private statsTimer: ReturnType<typeof setInterval> | undefined;
   private peerTypingTimer: ReturnType<typeof setTimeout> | undefined;
   private typingIdleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -309,6 +313,7 @@ export class Controller {
   }
 
   private discardSetup(): void {
+    clearTimeout(this.connectTimer);
     this.stopHandover?.();
     this.stopHandover = null;
     this.setupPeer?.close();
@@ -392,6 +397,7 @@ export class Controller {
     this.stopHandover = null;
     try {
       await this.setupPeer.acceptAnswer(payload.sdp);
+      this.startConnectTimer(setup.sessionId, CONNECT_TIMEOUT_MS);
     } catch (e) {
       if (e instanceof AnswerAlreadyUsedError) return this.setupError(t.errors.alreadyUsed);
       this.patchSetup({ phase: 'error', error: t.errors.setupFailed });
@@ -468,6 +474,7 @@ export class Controller {
       // Nur weiterschalten, falls die Verbindung nicht schon steht (z. B. sehr schneller Host).
       if (this.state.setup?.phase === 'creating') {
         this.patchSetup({ phase: 'waiting', code, link: buildLink('answer', code) }, sessionId);
+        this.startConnectTimer(sessionId, GUEST_SLOW_MS);
       } else {
         this.patchSetup({ code, link: buildLink('answer', code) }, sessionId);
       }
@@ -477,19 +484,31 @@ export class Controller {
     }
   }
 
+  /** Zeigt nach `ms` ohne Verbindung die Hilfe an; die Verbindung darf trotzdem noch zustande kommen. */
+  private startConnectTimer(sessionId: string, ms: number): void {
+    clearTimeout(this.connectTimer);
+    this.connectTimer = setTimeout(() => {
+      const setup = this.state.setup;
+      if (setup && setup.sessionId === sessionId && setup.phase !== 'securing' && setup.phase !== 'error') {
+        this.patchSetup({ iceFailed: true }, sessionId);
+      }
+    }, ms);
+  }
+
   private watchSetupPeer(peer: Peer, sessionId: string): void {
     peer.setHandlers({
       onOpen: () => this.onChannelOpen(peer, sessionId),
       onState: (state) => {
         if (this.setupPeer !== peer) return;
         if (state === 'failed') this.patchSetup({ iceFailed: true }, sessionId);
-        else if (state === 'connected' || state === 'connecting') this.patchSetup({ iceFailed: false }, sessionId);
+        else if (state === 'connected') this.patchSetup({ iceFailed: false }, sessionId);
       },
     });
   }
 
   private onChannelOpen(peer: Peer, sessionId: string): void {
     if (this.setupPeer !== peer) return;
+    clearTimeout(this.connectTimer);
     this.stopHandover?.();
     this.stopHandover = null;
     this.patchSetup({ phase: 'securing', iceFailed: false }, sessionId);
@@ -857,9 +876,15 @@ export class Controller {
   }
 
   private onPageHide(): void {
-    this.session?.sendByeNow();
-    this.session?.peer.close();
-    this.setupPeer?.close();
+    const session = this.session;
+    if (session) {
+      session.sendByeNow();
+      this.session = null;
+      session.peer.close();
+      // Falls die Seite aus dem bfcache zurückkehrt, ist die Verbindung sichtbar weg.
+      this.patchChat({ status: 'lost', peerTyping: false, connectionType: null });
+    }
+    this.discardSetup();
   }
 
   /** Nur für Tests/Debugging: aktuelle Sitzung vorhanden? */

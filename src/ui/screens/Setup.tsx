@@ -13,8 +13,8 @@ function IceHelp({ role }: { role: 'host' | 'guest' }) {
   const c = useController();
   return (
     <div class="card warn" role="alert" data-testid="ice-failed">
-      <h2>{t.errors.iceFailedTitle}</h2>
-      <p>{t.errors.iceFailed}</p>
+      <h2>{role === 'host' ? t.errors.iceFailedTitle : t.errors.guestSlowTitle}</h2>
+      <p>{role === 'host' ? t.errors.iceFailed : t.errors.guestSlow}</p>
       <ul>
         {t.errors.iceFailedTips.map((tip) => (
           <li key={tip}>{tip}</li>

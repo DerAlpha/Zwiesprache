@@ -4,13 +4,15 @@ import { encode } from 'uqr';
 
 export interface QrMatrix {
   size: number;
+  /** true = dunkles Modul; inklusive Ruhezone. */
+  modules: boolean[][];
   /** SVG-Pfad aller dunklen Module (1 Einheit = 1 Modul). */
   path: string;
 }
 
 export function qrMatrix(text: string): QrMatrix {
   // ECC "L": maximale Kapazität bei kleinster Version – Bildschirm-zu-Kamera hat kaum Beschädigungen.
-  const qr = encode(text, { ecc: 'L', border: 3 });
+  const qr = encode(text, { ecc: 'L', border: 4 });
   let path = '';
   qr.data.forEach((row, y) => {
     let x = 0;
@@ -24,5 +26,5 @@ export function qrMatrix(text: string): QrMatrix {
       path += `M${start} ${y}h${x - start}v1h${start - x}z`;
     }
   });
-  return { size: qr.size, path };
+  return { size: qr.size, modules: qr.data, path };
 }

@@ -1,0 +1,34 @@
+# Zwiesprache – optionale Apache-Konfiguration (benötigt mod_headers).
+# Dieselben Regeln wie die CSP im Meta-Tag, ergänzt um Header, die per Meta-Tag nicht gehen.
+
+Options -Indexes
+
+<IfModule mod_headers.c>
+  Header always set Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header always set Cross-Origin-Resource-Policy "same-origin"
+  # Kamera nur für den QR-Scanner; Zwischenablage für Kopieren/Einfügen; alles andere aus.
+  Header always set Permissions-Policy "camera=(self), clipboard-read=(self), clipboard-write=(self), web-share=(self), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=(), display-capture=(), fullscreen=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), xr-spatial-tracking=(), browsing-topics=(), interest-cohort=()"
+  # Optional, wenn die Domain dauerhaft nur per HTTPS erreichbar ist:
+  # Header always set Strict-Transport-Security "max-age=31536000"
+</IfModule>
+
+# index.html nicht cachen, damit Updates sofort ankommen; Assets haben Hash-Dateinamen.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# Auf HTTPS umleiten (WebRTC und Web Crypto brauchen einen sicheren Kontext).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>

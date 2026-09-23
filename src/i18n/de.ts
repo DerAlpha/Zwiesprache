@@ -128,6 +128,9 @@ export const de = {
       'Ein Gerät als Hotspot nutzen und das andere damit verbinden.',
       'In den Einstellungen einen TURN-Server eintragen.',
     ],
+    guestSlowTitle: 'Noch keine Verbindung?',
+    guestSlow:
+      'Hat dein Gegenüber den Antwort-Link schon eingefügt? Falls ja, konnten sich eure Geräte vermutlich nicht erreichen – oft im Mobilfunknetz oder hinter strengen Firewalls. Das hilft:',
     noCandidates: 'Es wurden keine Verbindungswege gefunden. Prüfe die Einstellungen (TURN-Server für „IP verbergen“).',
     handshakeFailed: 'Der sichere Schlüsselaustausch ist fehlgeschlagen. Bitte neu verbinden.',
     tryAgain: 'Neu versuchen',
@@ -199,6 +202,7 @@ export const de = {
   },
 
   files: {
+    units: ['B', 'KB', 'MB', 'GB'],
     tooLarge: (maxMb: number) => `Die Datei ist zu groß (max. ${maxMb} MB).`,
     preparing: 'Wird vorbereitet …',
     sending: 'Wird gesendet',
