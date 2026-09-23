@@ -92,8 +92,6 @@ export const de = {
     label: 'Link oder Code',
     placeholder: 'https://…#i=… oder Code',
     submit: 'Weiter',
-    answerHere:
-      'Das ist ein Antwort-Code. Füge ihn in dem Tab ein, in dem du die Einladung erstellt hast.',
     handedOver: 'Antwort wurde an den wartenden Tab übergeben.',
   },
 
@@ -138,7 +136,6 @@ export const de = {
   },
 
   status: {
-    connecting: 'Verbinde …',
     securing: 'Schlüsselaustausch …',
     connected: 'Verbunden',
     reconnecting: 'Verbindung unterbrochen – versuche wiederherzustellen …',
@@ -163,7 +160,6 @@ export const de = {
     you: 'Du',
     peer: 'Gegenüber',
     messagesLabel: 'Nachrichten',
-    empty: 'Noch keine Nachrichten. Sagt Hallo! 👋',
     endChat: 'Chat beenden',
     endConfirm: 'Chat wirklich beenden? Alle Nachrichten und Dateien in diesem Tab werden verworfen.',
     endYes: 'Ja, beenden',
@@ -177,9 +173,6 @@ export const de = {
     reconnected: 'Wieder verbunden.',
     connectedNote: 'Verbunden. Vergleicht den Sicherheitscode, um sicherzugehen, dass niemand dazwischensitzt.',
     tooLong: (max: number) => `Die Nachricht ist zu lang (max. ${max.toLocaleString('de-DE')} Zeichen).`,
-    charsLeft: (n: number) => `Noch ${n.toLocaleString('de-DE')} Zeichen`,
-    newMessage: 'Neue Nachricht',
-    soundOn: 'Ton an',
   },
 
   safety: {
@@ -216,7 +209,6 @@ export const de = {
     progress: (pct: number) => `${pct} %`,
     imageAlt: (name: string) => `Bild: ${name}`,
     tooMany: 'Zu viele gleichzeitige Übertragungen – bitte warten.',
-    notice: 'Aus Sicherheitsgründen werden nur PNG-, JPEG-, GIF- und WebP-Bilder angezeigt. Alles andere kannst du speichern.',
   },
 
   scan: {
@@ -225,7 +217,6 @@ export const de = {
     starting: 'Kamera wird gestartet …',
     denied: 'Kein Zugriff auf die Kamera. Erlaube den Zugriff oder füge den Link manuell ein.',
     unavailable: 'Keine Kamera verfügbar.',
-    invalid: 'Der QR-Code enthält keinen gültigen Zwiesprache-Link.',
   },
 
   settings: {

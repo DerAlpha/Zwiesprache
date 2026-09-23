@@ -161,6 +161,8 @@ export class Controller {
   /** Fingerprint-Paar der zuletzt verifizierten Verbindung (für Reconnects mit denselben Geräten). */
   private verifiedPair: string | null = null;
   private currentPair: string | null = null;
+  /** IDs aller Einträge im Verlauf – doppelte IDs vom Gegenüber werden ignoriert. */
+  private itemIds = new Set<string>();
   onIncomingMessage: (() => void) | null = null;
 
   constructor() {
@@ -197,10 +199,12 @@ export class Controller {
     this.set({ chat: { ...this.state.chat, ...patch } });
   }
 
-  private addItem(item: Omit<ChatItem, 'ts'> & { ts?: number }): void {
+  private addItem(item: Omit<ChatItem, 'ts'> & { ts?: number }): boolean {
     const chat = this.state.chat;
-    if (!chat) return;
+    if (!chat || this.itemIds.has(item.id)) return false;
+    this.itemIds.add(item.id);
     this.set({ chat: { ...chat, items: [...chat.items, { ts: Date.now(), ...item }] } });
+    return true;
   }
 
   private addSystem(body: string): void {
@@ -316,6 +320,12 @@ export class Controller {
     clearTimeout(this.connectTimer);
     this.stopHandover?.();
     this.stopHandover = null;
+    // Eine Sitzung, deren Schlüsselaustausch noch läuft, gehört zum Assistenten.
+    const pending = this.session;
+    if (pending && !pending.isSecure) {
+      this.session = null;
+      pending.abort('local');
+    }
     this.setupPeer?.close();
     this.setupPeer = null;
     this.set({ setup: null });
@@ -358,8 +368,13 @@ export class Controller {
       const code = await encodeSignal({ version: 1, type: 'offer', sessionId, sdp });
       if (this.setupPeer !== peer) return;
       this.patchSetup({ phase: 'waiting', code, link: buildLink('offer', code), startedAt: Date.now() }, sessionId);
+      let claimed = false;
       this.stopHandover = listenForAnswers(
-        (c) => this.answerMatches(c, sessionId),
+        async (c) => {
+          const ok = !claimed && (await this.answerMatches(c, sessionId)) && !claimed;
+          if (ok) claimed = true;
+          return ok;
+        },
         (c) => void this.submitAnswer(c),
       );
     } catch (e) {
@@ -636,7 +651,7 @@ export class Controller {
     switch (msg.type) {
       case 'text':
         this.clearPeerTyping();
-        this.addItem({ id: msg.id, kind: 'text', direction: 'in', body: msg.body, status: null, file: null, ts: Date.now() });
+        if (!this.addItem({ id: msg.id, kind: 'text', direction: 'in', body: msg.body, status: null, file: null })) return;
         void session.send(createMessage({ type: 'ack', ref: msg.id })).catch(() => undefined);
         this.notifyIncoming();
         return;
@@ -672,8 +687,7 @@ export class Controller {
   // ---------------------------------------------------------------- Dateien (Empfang)
 
   private onFileOffer(session: Session, msg: Extract<Message, { type: 'file-offer' }>): void {
-    const existing = this.state.chat?.items.some((it) => it.id === msg.id);
-    if (existing || this.incoming.has(msg.id)) return;
+    if (this.itemIds.has(msg.id) || this.incoming.has(msg.id)) return;
     if (this.incoming.size >= MAX_PARALLEL_TRANSFERS) {
       void session.send(createMessage({ type: 'file-cancel', ref: msg.id })).catch(() => undefined);
       return;
@@ -752,10 +766,6 @@ export class Controller {
   }
 
   // ---------------------------------------------------------------- Aktionen im Chat
-
-  get canSend(): boolean {
-    return this.session?.isSecure === true && this.state.chat?.status === 'connected';
-  }
 
   async sendText(body: string): Promise<boolean> {
     const text = body.replace(/\s+$/u, '');
@@ -872,6 +882,7 @@ export class Controller {
     }
     this.verifiedPair = null;
     this.currentPair = null;
+    this.itemIds.clear();
     this.set({ chat: null, unread: 0 });
   }
 
@@ -885,11 +896,6 @@ export class Controller {
       this.patchChat({ status: 'lost', peerTyping: false, connectionType: null });
     }
     this.discardSetup();
-  }
-
-  /** Nur für Tests/Debugging: aktuelle Sitzung vorhanden? */
-  get hasSession(): boolean {
-    return this.session !== null;
   }
 }
 
